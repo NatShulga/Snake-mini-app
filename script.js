@@ -215,7 +215,7 @@ startBtn.addEventListener('click', () => {
 });
 
 pauseBtn.addEventListener('click', () => {
-    if (!gameInterval) return; // нечего ставить на паузу
+    //if (!gameInterval) return; // нечего ставить на паузу
     if (isPaused) {
         // Продолжить
         isPaused = false;
