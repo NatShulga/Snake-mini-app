@@ -53,7 +53,7 @@ function initGame() {
   draw();
   isPaused = false;
   pauseBtn.disabled = false;
-  startBtn.textContent = 'Старт';
+  startBtn.textContent = 'Start';
 }
 
 //создание еды
@@ -173,8 +173,8 @@ function gameStep() {
 //конец игры
 function gameOver() {
     stopGameLoop();
-    alert('Игра окончена! Длина змейки: ' + snake.length);
-    startBtn.textContent = 'Заново';
+    alert('Game Over! Score: ' + snake.length);
+    startBtn.textContent = 'Restart';
     pauseBtn.disabled = true;
 }
 
@@ -204,7 +204,7 @@ startBtn.addEventListener('click', () => {
         if (isPaused) {
             // Снимаем с паузы
             isPaused = false;
-            pauseBtn.textContent = 'Пауза';
+            pauseBtn.textContent = 'Pause';
             startGameLoop();
         } else {
             // Новая игра
@@ -219,12 +219,12 @@ pauseBtn.addEventListener('click', () => {
     if (isPaused) {
         // Продолжить
         isPaused = false;
-        pauseBtn.textContent = 'Пауза';
+        pauseBtn.textContent = 'Pause';
         startGameLoop();
     } else {
         // Пауза
         isPaused = true;
-        pauseBtn.textContent = 'Продолжить';
+        pauseBtn.textContent = 'Resume';
         stopGameLoop();
     }
 });
