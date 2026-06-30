@@ -1,8 +1,6 @@
-//настройка
 
-const ROWS = 13;
-const COLS = 21;
-const SPEED = 400;
+let ROWS, COLS;
+const SPEED = 300;
 
 const fruitMap = {
   1: "🍓",
@@ -11,33 +9,52 @@ const fruitMap = {
   4: "🍉",
 };
 
+//переменные для состояний
 let grid = [];
 let snake = [];
-let direction = "R"; //текущее направление
-let nextDirection = "R"; //следущее направление
+let direction = "R";
+let nextDirection = "R";
 let score = 0;
-let gameInterval = null; //id интервала для игры
-let isPaused = false; // на паузе?
+let gameInterval = null;
+let isPaused = false;
+isVertical = (ROWS === 21); 
 
-//DOM елементы
+// DOM элементы
 const gameField = document.getElementById("game-field");
 const scoreSpan = document.getElementById("score");
 const startBtn = document.getElementById("start-btn");
 const pauseBtn = document.getElementById("pause-btn");
 
-//инициализация игры
+//инициализируем игру
 function initGame() {
-  stopGameLoop(); //очищение предыдущей игры, если она была
+  stopGameLoop();
 
+  // Определяем размеры поля в зависимости от ориентации экрана
+  if (window.innerWidth <= 500) {
+    //Вертикально, если поле вертикально
+    ROWS = 21;
+    COLS = 13;
+  } else {
+    //Горизонтальное поле
+    ROWS = 13;
+    COLS = 21;
+  }
+
+  // Настраиваем CSS-сетку под новые размеры
+  gameField.style.gridTemplateRows = `repeat(${ROWS}, 1fr)`;
+  gameField.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+  gameField.style.aspectRatio = `${COLS} / ${ROWS}`;
+
+  // Пустое поле
   grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 
-  //начальная змейка
-  const startX = Math.floor(ROWS / 2);//6
-  const startY = Math.floor(COLS / 2);//10
+  // Начальная змейка в центре
+  const startX = Math.floor(ROWS / 2);
+  const startY = Math.floor(COLS / 2);
   snake = [
-    {x: startX, y: startY - 2},
-    {x: startX, y: startY - 1},
-    {x: startX, y: startY} //голова
+    { x: startX, y: startY - 2 },
+    { x: startX, y: startY - 1 },
+    { x: startX, y: startY }, // голова
   ];
 
   direction = "R";
@@ -45,217 +62,213 @@ function initGame() {
   score = snake.length;
   updateScore();
 
-  //5 случайных ягод на поле
-  for (let i = 0; i < 5; i++ ){
+  // Разбрасываем 5 случайных ягод
+  for (let i = 0; i < 5; i++) {
     spawnFood();
   }
-  //рисуем поле
+
   draw();
   isPaused = false;
   pauseBtn.disabled = false;
-  startBtn.textContent = 'Start';
+  startBtn.textContent = "Start";
+  isVertical = (ROWS === 21);
 }
 
-//создание еды
+//создание еды для змеи
 function spawnFood() {
-    // Собираем все свободные клетки (где 0 и нет змеи)
-    const freeCells = [];
-    for (let i = 0; i < ROWS; i++) {
-        for (let j = 0; j < COLS; j++) {
-            if (grid[i][j] === 0 && !snake.some(seg => seg.x === i && seg.y === j)) {
-                freeCells.push({ x: i, y: j });
-            }
-        }
+  const freeCells = [];
+  for (let i = 0; i < ROWS; i++) {
+    for (let j = 0; j < COLS; j++) {
+      if (
+        grid[i][j] === 0 &&
+        !snake.some((seg) => seg.x === i && seg.y === j)
+      ) {
+        freeCells.push({ x: i, y: j });
+      }
     }
-    if (freeCells.length === 0) return; // нет места — не создаём
+  }
+  if (freeCells.length === 0) return;
 
-    // Выбираем случайную свободную клетку
-    const randIndex = Math.floor(Math.random() * freeCells.length);
-    const { x, y } = freeCells[randIndex];
-
-    // Случайный тип фрукта: 1,2,3 или 4
-    const fruitType = Math.floor(Math.random() * 4) + 1;
-    grid[x][y] = fruitType;
+  const randIndex = Math.floor(Math.random() * freeCells.length);
+  const { x, y } = freeCells[randIndex];
+  const fruitType = Math.floor(Math.random() * 4) + 1;
+  grid[x][y] = fruitType;
 }
 
-//отрисовка поля
+//отрисовка
 function draw() {
-    // Очищаем контейнер поля
-    gameField.innerHTML = '';
+  gameField.innerHTML = "";
 
-    // Создаём каждую клетку и добавляем нужные классы
-    for (let i = 0; i < ROWS; i++) {
-        for (let j = 0; j < COLS; j++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
+  for (let i = 0; i < ROWS; i++) {
+    for (let j = 0; j < COLS; j++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
 
-            // Проверяем, есть ли здесь змея
-            const snakeIndex = snake.findIndex(seg => seg.x === i && seg.y === j);
-            if (snakeIndex !== -1) {
-                // Это часть змеи
-                if (snakeIndex === snake.length - 1) {
-                    // Это голова
-                    cell.classList.add('snake-head');
-                } else {
-                    // Тело
-                    cell.classList.add('snake-body');
-                }
-            }
-            // Проверяем, есть ли еда (даже под змеёй — но мы её не рисуем, т.к. змея важнее)
-            if (grid[i][j] >= 1 && grid[i][j] <= 4 && snakeIndex === -1) {
-                // Ягода, если здесь нет змеи
-                cell.classList.add('food');
-                cell.textContent = fruitMap[grid[i][j]];
-            }
-
-            gameField.appendChild(cell);
+      const snakeIndex = snake.findIndex((seg) => seg.x === i && seg.y === j);
+      if (snakeIndex !== -1) {
+        if (snakeIndex === snake.length - 1) {
+          cell.classList.add("snake-head");
+        } else {
+          cell.classList.add("snake-body");
         }
+      }
+
+      if (grid[i][j] >= 1 && grid[i][j] <= 4 && snakeIndex === -1) {
+        cell.classList.add("food");
+        cell.textContent = fruitMap[grid[i][j]];
+      }
+
+      gameField.appendChild(cell);
     }
+  }
 }
 
-//проверка коллизий
+//коллизия
 function checkCollision(head) {
-    // Столкновение со стенами
-    if (head.x < 0 || head.x >= ROWS || head.y < 0 || head.y >= COLS) {
-        return true;
+  if (head.x < 0 || head.x >= ROWS || head.y < 0 || head.y >= COLS) {
+    return true;
+  }
+  for (let i = 0; i < snake.length - 1; i++) {
+    if (snake[i].x === head.x && snake[i].y === head.y) {
+      return true;
     }
-    // Столкновение с собственным телом (игнорируем хвост, который сейчас уберётся)
-    // Проверяем все сегменты, кроме последнего (хвоста), потому что хвост будет удалён, если не съедим еду
-    for (let i = 0; i < snake.length - 1; i++) {
-        if (snake[i].x === head.x && snake[i].y === head.y) {
-            return true;
-        }
-    }
-    return false;
+  }
+  return false;
 }
 
-//игровой шаг
+//шаг в игре
 function gameStep() {
-    direction = nextDirection;
+  direction = nextDirection;
 
-    // Координаты головы
-    const head = snake[snake.length - 1];
-    let newHead = { x: head.x, y: head.y };
+  const head = snake[snake.length - 1];
+  let newHead = { x: head.x, y: head.y };
 
-    // Сдвигаем голову в зависимости от направления
-    if (direction === 'U') newHead.x--;
-    else if (direction === 'D') newHead.x++;
-    else if (direction === 'L') newHead.y--;
-    else if (direction === 'R') newHead.y++;
+  if (direction === "U") newHead.x--;
+  else if (direction === "D") newHead.x++;
+  else if (direction === "L") newHead.y--;
+  else if (direction === "R") newHead.y++;
 
-    // Проверяем коллизии (стены, тело)
-    if (checkCollision(newHead)) {
-        gameOver();
-        return;
-    }
+  if (checkCollision(newHead)) {
+    gameOver();
+    return;
+  }
 
-    // Добавляем новую голову в змейку
-    snake.push(newHead);
+  snake.push(newHead);
 
-    // Проверяем, съели ли ягоду
-    const cellValue = grid[newHead.x][newHead.y];
-    if (cellValue >= 1 && cellValue <= 4) {
-        // Съели! Увеличиваем счёт, убираем ягоду с поля, создаём новую
-        grid[newHead.x][newHead.y] = 0;
-        score = snake.length;
-        updateScore();
-        spawnFood();
-        // Хвост не убираем — змея растёт
-    } else {
-        // Не съели — убираем хвост (первый элемент)
-        snake.shift();
-    }
+  const cellValue = grid[newHead.x][newHead.y];
+  if (cellValue >= 1 && cellValue <= 4) {
+    grid[newHead.x][newHead.y] = 0;
+    score = snake.length;
+    updateScore();
+    spawnFood();
+  } else {
+    snake.shift();
+  }
 
-    // Перерисовываем поле
-    draw();
+  draw();
 }
 
-//конец игры
+//гейм овер
 function gameOver() {
-    stopGameLoop();
-    alert('Game Over! Score: ' + snake.length);
-    startBtn.textContent = 'Restart';
-    pauseBtn.disabled = true;
+  stopGameLoop();
+  alert("Game over! Length: " + snake.length);
+  startBtn.textContent = "Restart";
+  pauseBtn.disabled = true;
 }
 
-//цикл
+//управление таймером, скоростью
 function startGameLoop() {
-    if (gameInterval) clearInterval(gameInterval);
-    gameInterval = setInterval(gameStep, SPEED);
+  if (gameInterval) clearInterval(gameInterval);
+  gameInterval = setInterval(gameStep, SPEED);
 }
 
 function stopGameLoop() {
-    if (gameInterval) {
-        clearInterval(gameInterval);
-        gameInterval = null;
-    }
+  if (gameInterval) {
+    clearInterval(gameInterval);
+    gameInterval = null;
+  }
 }
 
-//обработчик кнопок
-startBtn.addEventListener('click', () => {
-    // Если игра уже идёт (не на паузе), кнопка работает как рестарт
-    if (gameInterval && !isPaused) {
-        // Остановить, потом инициализировать заново
-        stopGameLoop();
-        initGame();
-        startGameLoop();
-    } else {
-        // Или просто начать/продолжить
-        if (isPaused) {
-            // Снимаем с паузы
-            isPaused = false;
-            pauseBtn.textContent = 'Pause';
-            startGameLoop();
-        } else {
-            // Новая игра
-            initGame();
-            startGameLoop();
-        }
-    }
-});
-
-pauseBtn.addEventListener('click', () => {
-    //if (!gameInterval) return; // нечего ставить на паузу
+//обрабботчики кнопок
+startBtn.addEventListener("click", () => {
+  if (gameInterval && !isPaused) {
+    stopGameLoop();
+    initGame();
+    startGameLoop();
+  } else {
     if (isPaused) {
-        // Продолжить
-        isPaused = false;
-        pauseBtn.textContent = 'Pause';
-        startGameLoop();
+      isPaused = false;
+      pauseBtn.textContent = "Pause";
+      startGameLoop();
     } else {
-        // Пауза
-        isPaused = true;
-        pauseBtn.textContent = 'Resume';
-        stopGameLoop();
+      initGame();
+      startGameLoop();
     }
+  }
 });
 
-//с клавиатуры
-document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    // Предотвращаем стандартное поведение для стрелок, чтобы не скроллилась страница
-    if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright' ||
-        key === 'w' || key === 'a' || key === 's' || key === 'd') {
-        e.preventDefault();
-    }
-
-    // Меняем nextDirection, проверяя, чтобы не было разворота на 180 градусов
-    if (key === 'arrowup' || key === 'w') {
-        if (direction !== 'D') nextDirection = 'U';
-    } else if (key === 'arrowdown' || key === 's') {
-        if (direction !== 'U') nextDirection = 'D';
-    } else if (key === 'arrowleft' || key === 'a') {
-        if (direction !== 'R') nextDirection = 'L';
-    } else if (key === 'arrowright' || key === 'd') {
-        if (direction !== 'L') nextDirection = 'R';
-    }
+pauseBtn.addEventListener("click", () => {
+  if (isPaused) {
+    isPaused = false;
+    pauseBtn.textContent = "Pause";
+    startGameLoop();
+  } else {
+    isPaused = true;
+    pauseBtn.textContent = "Resume";
+    stopGameLoop();
+  }
 });
 
-// ---------- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ----------
+//
+document.addEventListener("keydown", (e) => {
+  const key = e.key.toLowerCase();
+  if (
+    [
+      "arrowup",
+      "arrowdown",
+      "arrowleft",
+      "arrowright",
+      "w",
+      "a",
+      "s",
+      "d",
+    ].includes(key)
+  ) {
+    e.preventDefault();
+  }
+
+  if (key === "arrowup" || key === "w") {
+    if (direction !== "D") nextDirection = "U";
+  } else if (key === "arrowdown" || key === "s") {
+    if (direction !== "U") nextDirection = "D";
+  } else if (key === "arrowleft" || key === "a") {
+    if (direction !== "R") nextDirection = "L";
+  } else if (key === "arrowright" || key === "d") {
+    if (direction !== "L") nextDirection = "R";
+  }
+});
+
+//адаптив для поворота экрана
+window.addEventListener("resize", () => {
+    const shouldBeVertical = window.innerWidth <= 500;
+    if (shouldBeVertical === isVertical) return
+
+    if (gameInterval && !isPaused) {
+    stopGameLoop();
+    initGame();
+    startGameLoop();
+    } else {
+        initGame();
+        if (isPaused) {
+            stopGameLoop();                 
+            isPaused = true;
+            pauseBtn.textContent = 'Resume';
+    }
+}
+});
+
 function updateScore() {
-    scoreSpan.textContent = score;
+scoreSpan.textContent = score;
 }
 
-//отрисовка до старта
-initGame(); // поле и змейка уже видны, но движения нет
-// Игровой цикл не запущен, ждём нажатия Старт
-
+initGame();
