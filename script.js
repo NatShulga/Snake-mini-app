@@ -267,6 +267,55 @@ window.addEventListener("resize", () => {
 }
 });
 
+// ---------- СЕНСОРНОЕ УПРАВЛЕНИЕ (СВАЙПЫ) ----------
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: false });   // passive: false, чтобы можно было предотвратить скроллинг
+
+document.addEventListener('touchend', (e) => {
+    if (touchStartX === 0 && touchStartY === 0) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+    const minSwipeDistance = 30;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+        // Горизонтальный свайп
+        if (Math.abs(dx) > minSwipeDistance) {
+            if (dx > 0 && direction !== 'L') {
+                nextDirection = 'R';
+            } else if (dx < 0 && direction !== 'R') {
+                nextDirection = 'L';
+            }
+        }
+    } else {
+        // Вертикальный свайп
+        if (Math.abs(dy) > minSwipeDistance) {
+            if (dy > 0 && direction !== 'U') {
+                nextDirection = 'D';
+            } else if (dy < 0 && direction !== 'D') {
+                nextDirection = 'U';
+            }
+        }
+    }
+
+    touchStartX = 0;
+    touchStartY = 0;
+});
+
+// Чтобы случайные касания не дёргали экран, запретим скроллинг на всём поле
+document.getElementById('game-field').addEventListener('touchmove', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+
 function updateScore() {
 scoreSpan.textContent = score;
 }
